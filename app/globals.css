@@ -1,0 +1,222 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Kyrgyz Memory - Vibrant Cultural Theme */
+:root {
+  /* Warm cream background inspired by felt/yurt interiors */
+  --background: oklch(0.97 0.01 85);
+  --foreground: oklch(0.25 0.02 30);
+  
+  /* Cards with warm ivory */
+  --card: oklch(0.99 0.005 90);
+  --card-foreground: oklch(0.25 0.02 30);
+  
+  --popover: oklch(0.99 0.005 90);
+  --popover-foreground: oklch(0.25 0.02 30);
+  
+  /* Primary: Rich Kyrgyz Red */
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.98 0.005 90);
+  
+  /* Secondary: Golden Yellow (traditional embroidery) */
+  --secondary: oklch(0.85 0.15 85);
+  --secondary-foreground: oklch(0.25 0.02 30);
+  
+  /* Muted: Warm Sand */
+  --muted: oklch(0.92 0.02 75);
+  --muted-foreground: oklch(0.45 0.02 30);
+  
+  /* Accent: Deep Blue (sky/mountains) */
+  --accent: oklch(0.50 0.15 250);
+  --accent-foreground: oklch(0.98 0.005 90);
+  
+  --destructive: oklch(0.55 0.25 27);
+  --destructive-foreground: oklch(0.98 0.005 90);
+  
+  --border: oklch(0.88 0.03 75);
+  --input: oklch(0.92 0.02 75);
+  --ring: oklch(0.55 0.22 25);
+  
+  /* Chart colors: Kyrgyz cultural palette */
+  --chart-1: oklch(0.55 0.22 25);  /* Red */
+  --chart-2: oklch(0.50 0.15 250); /* Blue */
+  --chart-3: oklch(0.75 0.15 85);  /* Gold */
+  --chart-4: oklch(0.55 0.12 145); /* Green */
+  --chart-5: oklch(0.65 0.18 35);  /* Orange */
+  
+  --radius: 1rem;
+  
+  --sidebar: oklch(0.98 0.005 90);
+  --sidebar-foreground: oklch(0.25 0.02 30);
+  --sidebar-primary: oklch(0.55 0.22 25);
+  --sidebar-primary-foreground: oklch(0.98 0.005 90);
+  --sidebar-accent: oklch(0.92 0.02 75);
+  --sidebar-accent-foreground: oklch(0.25 0.02 30);
+  --sidebar-border: oklch(0.88 0.03 75);
+  --sidebar-ring: oklch(0.55 0.22 25);
+}
+
+.dark {
+  --background: oklch(0.18 0.02 30);
+  --foreground: oklch(0.95 0.01 85);
+  --card: oklch(0.22 0.02 30);
+  --card-foreground: oklch(0.95 0.01 85);
+  --popover: oklch(0.22 0.02 30);
+  --popover-foreground: oklch(0.95 0.01 85);
+  --primary: oklch(0.65 0.22 25);
+  --primary-foreground: oklch(0.15 0.02 30);
+  --secondary: oklch(0.75 0.15 85);
+  --secondary-foreground: oklch(0.15 0.02 30);
+  --muted: oklch(0.28 0.02 30);
+  --muted-foreground: oklch(0.65 0.02 75);
+  --accent: oklch(0.55 0.15 250);
+  --accent-foreground: oklch(0.95 0.01 85);
+  --destructive: oklch(0.55 0.25 27);
+  --destructive-foreground: oklch(0.95 0.01 85);
+  --border: oklch(0.32 0.02 30);
+  --input: oklch(0.28 0.02 30);
+  --ring: oklch(0.65 0.22 25);
+  --chart-1: oklch(0.65 0.22 25);
+  --chart-2: oklch(0.55 0.15 250);
+  --chart-3: oklch(0.75 0.15 85);
+  --chart-4: oklch(0.55 0.12 145);
+  --chart-5: oklch(0.65 0.18 35);
+  --sidebar: oklch(0.22 0.02 30);
+  --sidebar-foreground: oklch(0.95 0.01 85);
+  --sidebar-primary: oklch(0.65 0.22 25);
+  --sidebar-primary-foreground: oklch(0.95 0.01 85);
+  --sidebar-accent: oklch(0.28 0.02 30);
+  --sidebar-accent-foreground: oklch(0.95 0.01 85);
+  --sidebar-border: oklch(0.32 0.02 30);
+  --sidebar-ring: oklch(0.65 0.22 25);
+}
+
+@theme inline {
+  --font-sans: 'Nunito', 'Nunito Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* 3D Card Flip Animations */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Smooth card flip transition */
+@keyframes card-flip-in {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(180deg);
+  }
+}
+
+@keyframes card-flip-out {
+  0% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+
+/* Match celebration animation */
+@keyframes match-celebrate {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-match {
+  animation: match-celebrate 0.5s ease-in-out;
+}
+
+/* Slow spin animation for decorative elements */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* Pulse glow for hint */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(197, 75, 60, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(197, 75, 60, 0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
