@@ -9,17 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { KyrgyzLogo } from "./kyrgyz-pattern";
-import { Trophy, User } from "lucide-react";
+import { Trophy, User, Users, Crown } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Types & config                                                      */
 /* ------------------------------------------------------------------ */
 
 type Difficulty = "easy" | "medium" | "hard";
+type GamePhase = "select-players" | "enter-names" | "select-difficulty" | "playing" | "finished";
 
 interface Player {
   id: number;
   name: string;
+  score: number;
+  dbId?: number; // ID from database if registered
 }
 
 const DIFFICULTY: Record<Difficulty, { pairs: number; cols: string; label: string }> = {
@@ -28,26 +31,34 @@ const DIFFICULTY: Record<Difficulty, { pairs: number; cols: string; label: strin
   hard:   { pairs: 16, cols: "grid-cols-4 sm:grid-cols-8", label: "Hard (8 x 4)" },
 };
 
+const PLAYER_COLORS = [
+  "bg-primary text-primary-foreground",
+  "bg-accent text-accent-foreground", 
+  "bg-secondary text-secondary-foreground",
+];
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
 
 export function GameBoard() {
+  /* ---------- game phase state ---------- */
+  const [phase, setPhase] = useState<GamePhase>("select-players");
+  const [playerCount, setPlayerCount] = useState(1);
+  
   /* ---------- player state ---------- */
-  const [player, setPlayer] = useState<Player | null>(null);
-  const [playerName, setPlayerName] = useState("");
-  const [playerLoading, setPlayerLoading] = useState(false);
-  const [playerError, setPlayerError] = useState<string | null>(null);
-
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [playerNames, setPlayerNames] = useState<string[]>(["", "", ""]);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [nameErrors, setNameErrors] = useState<string[]>(["", "", ""]);
+  
   /* ---------- game state ---------- */
   const [cards, setCards]             = useState<(KyrgyzItem & { uniqueId: string })[]>([]);
   const [flipped, setFlipped]         = useState<number[]>([]);
   const [matched, setMatched]         = useState<string[]>([]);
   const [moves, setMoves]             = useState(0);
   const [time, setTime]               = useState(0);
-  const [playing, setPlaying]         = useState(false);
   const [difficulty, setDifficulty]   = useState<Difficulty>("easy");
-  const [started, setStarted]         = useState(false);
 
   const [factItem, setFactItem]       = useState<KyrgyzItem | null>(null);
   const [factOpen, setFactOpen]       = useState(false);
@@ -59,18 +70,6 @@ export function GameBoard() {
   const [scoreSaving, setScoreSaving] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  /* ---------- load player from localStorage on mount ---------- */
-  useEffect(() => {
-    const savedPlayer = localStorage.getItem("kyrgyz_memory_player");
-    if (savedPlayer) {
-      try {
-        setPlayer(JSON.parse(savedPlayer));
-      } catch {
-        localStorage.removeItem("kyrgyz_memory_player");
-      }
-    }
-  }, []);
 
   /* ---------- helpers ---------- */
   const clearTimer = useCallback(() => {
@@ -86,67 +85,114 @@ export function GameBoard() {
     return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
-  /* ---------- register player ---------- */
-  const registerPlayer = async (e: React.FormEvent) => {
+  const currentPlayer = players[currentPlayerIndex];
+
+  /* ---------- select player count ---------- */
+  const selectPlayerCount = (count: number) => {
+    setPlayerCount(count);
+    setPlayerNames(["", "", ""]);
+    setNameErrors(["", "", ""]);
+    setPhase("enter-names");
+  };
+
+  /* ---------- validate and proceed to difficulty ---------- */
+  const submitNames = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (playerName.trim().length < 2) {
-      setPlayerError("Name must be at least 2 characters");
+    
+    const errors = ["", "", ""];
+    let hasError = false;
+    
+    for (let i = 0; i < playerCount; i++) {
+      if (playerNames[i].trim().length < 2) {
+        errors[i] = "Name must be at least 2 characters";
+        hasError = true;
+      }
+    }
+    
+    if (hasError) {
+      setNameErrors(errors);
       return;
     }
 
-    setPlayerLoading(true);
-    setPlayerError(null);
+    // Create players array
+    const newPlayers: Player[] = [];
+    
+    for (let i = 0; i < playerCount; i++) {
+      const name = playerNames[i].trim();
+      
+      // Try to register player in database
+      try {
+        const res = await fetch("/api/players", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
 
-    try {
-      const res = await fetch("/api/players", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: playerName.trim() }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to register");
+        if (res.ok) {
+          const data = await res.json();
+          newPlayers.push({
+            id: i + 1,
+            name,
+            score: 0,
+            dbId: data.player.id,
+          });
+        } else {
+          newPlayers.push({ id: i + 1, name, score: 0 });
+        }
+      } catch {
+        newPlayers.push({ id: i + 1, name, score: 0 });
       }
+    }
 
-      const data = await res.json();
-      setPlayer(data.player);
-      localStorage.setItem("kyrgyz_memory_player", JSON.stringify(data.player));
-    } catch (err) {
-      setPlayerError(err instanceof Error ? err.message : "Failed to register");
-    } finally {
-      setPlayerLoading(false);
+    setPlayers(newPlayers);
+    setPhase("select-difficulty");
+  };
+
+  /* ---------- update player name input ---------- */
+  const updatePlayerName = (index: number, value: string) => {
+    const newNames = [...playerNames];
+    newNames[index] = value;
+    setPlayerNames(newNames);
+    
+    // Clear error when typing
+    if (nameErrors[index]) {
+      const newErrors = [...nameErrors];
+      newErrors[index] = "";
+      setNameErrors(newErrors);
     }
   };
 
   /* ---------- save score ---------- */
-  const saveScore = useCallback(async () => {
-    if (!player || scoreSaved || scoreSaving) return;
+  const saveScores = useCallback(async () => {
+    if (scoreSaved || scoreSaving) return;
     
     setScoreSaving(true);
-    try {
-      const res = await fetch("/api/scores", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          player_id: player.id,
-          difficulty,
-          moves,
-          time_seconds: time,
-          pairs_found: cards.length / 2,
-          completed: true,
-        }),
-      });
-
-      if (res.ok) {
+    
+    // Save score for winner (or single player)
+    const winner = [...players].sort((a, b) => b.score - a.score)[0];
+    
+    if (winner?.dbId) {
+      try {
+        await fetch("/api/scores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            player_id: winner.dbId,
+            difficulty,
+            moves,
+            time_seconds: time,
+            pairs_found: cards.length / 2,
+            completed: true,
+          }),
+        });
         setScoreSaved(true);
+      } catch (err) {
+        console.error("Failed to save score:", err);
       }
-    } catch (err) {
-      console.error("Failed to save score:", err);
-    } finally {
-      setScoreSaving(false);
     }
-  }, [player, scoreSaved, scoreSaving, difficulty, moves, time, cards.length]);
+    
+    setScoreSaving(false);
+  }, [players, scoreSaved, scoreSaving, difficulty, moves, time, cards.length]);
 
   /* ---------- start / restart ---------- */
   const startGame = useCallback((diff: Difficulty) => {
@@ -157,36 +203,46 @@ export function GameBoard() {
     setMatched([]);
     setMoves(0);
     setTime(0);
-    setPlaying(true);
     setDifficulty(diff);
-    setStarted(true);
+    setCurrentPlayerIndex(0);
     setHint(null);
     setChecking(false);
     setFactItem(null);
     setFactOpen(false);
     setScoreSaved(false);
     setScoreSaving(false);
+    
+    // Reset player scores
+    setPlayers(prev => prev.map(p => ({ ...p, score: 0 })));
+    
+    setPhase("playing");
   }, [clearTimer]);
 
   /* ---------- timer ---------- */
   useEffect(() => {
-    if (playing && matched.length < cards.length) {
+    if (phase === "playing" && matched.length < cards.length) {
       timerRef.current = setInterval(() => setTime((t) => t + 1), 1000);
     }
     return clearTimer;
-  }, [playing, matched.length, cards.length, clearTimer]);
+  }, [phase, matched.length, cards.length, clearTimer]);
 
   /* ---------- win detection ---------- */
   const isWon = cards.length > 0 && matched.length === cards.length;
 
   useEffect(() => {
-    if (isWon) {
-      setPlaying(false);
+    if (isWon && phase === "playing") {
+      setPhase("finished");
       clearTimer();
-      // Save score when game is won
-      saveScore();
+      saveScores();
     }
-  }, [isWon, clearTimer, saveScore]);
+  }, [isWon, phase, clearTimer, saveScores]);
+
+  /* ---------- switch to next player (multiplayer) ---------- */
+  const switchToNextPlayer = useCallback(() => {
+    if (players.length > 1) {
+      setCurrentPlayerIndex((prev) => (prev + 1) % players.length);
+    }
+  }, [players.length]);
 
   /* ---------- card click ---------- */
   const handleClick = useCallback((index: number) => {
@@ -209,37 +265,56 @@ export function GameBoard() {
       const cardB = cards[b];
 
       if (cardA.id === cardB.id) {
-        // matched
+        // matched - current player gets a point
         setTimeout(() => {
           setMatched((prev) => [...prev, cardA.uniqueId, cardB.uniqueId]);
           setFlipped([]);
           setChecking(false);
           setFactItem(cardA);
           setFactOpen(true);
+          
+          // Update current player's score
+          setPlayers(prev => prev.map((p, i) => 
+            i === currentPlayerIndex ? { ...p, score: p.score + 1 } : p
+          ));
+          
+          // Player gets another turn on match (don't switch)
         }, 450);
       } else {
-        // mismatch -- show hint, flip back
+        // mismatch -- show hint, flip back, switch player
         setHint(`Remember: ${cardA.name} and ${cardB.name} are in different positions!`);
         setTimeout(() => {
           setFlipped([]);
           setHint(null);
           setChecking(false);
+          switchToNextPlayer();
         }, 1500);
       }
     }
-  }, [cards, flipped, matched, checking]);
+  }, [cards, flipped, matched, checking, currentPlayerIndex, switchToNextPlayer]);
 
-  /* ---------- logout / change player ---------- */
-  const logoutPlayer = () => {
-    setPlayer(null);
-    localStorage.removeItem("kyrgyz_memory_player");
-    setStarted(false);
-    setPlaying(false);
+  /* ---------- restart completely ---------- */
+  const restartCompletely = () => {
+    clearTimer();
+    setPhase("select-players");
+    setPlayerCount(1);
+    setPlayers([]);
+    setPlayerNames(["", "", ""]);
+    setCurrentPlayerIndex(0);
     setCards([]);
+    setFlipped([]);
+    setMatched([]);
+    setMoves(0);
+    setTime(0);
   };
 
   const totalPairs   = cards.length / 2;
   const matchedPairs = matched.length / 2;
+  
+  // Get winner(s) for multiplayer
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const winner = sortedPlayers[0];
+  const isTie = players.length > 1 && sortedPlayers.filter(p => p.score === winner?.score).length > 1;
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -257,8 +332,8 @@ export function GameBoard() {
               <span className="font-extrabold text-lg text-foreground hidden sm:inline">Kyrgyz Memory</span>
             </Link>
 
-            {/* Stats -- desktop */}
-            {started && playing && (
+            {/* Stats -- desktop (during play) */}
+            {phase === "playing" && (
               <div className="hidden sm:flex items-center gap-3 text-sm">
                 <Stat label="Moves" value={String(moves)} />
                 <Stat label="Time" value={formatTime(time)} mono />
@@ -268,13 +343,7 @@ export function GameBoard() {
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              {player && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">{player.name}</span>
-                </div>
-              )}
-              {started && (
+              {phase === "playing" && (
                 <Button variant="outline" size="sm" onClick={() => startGame(difficulty)} className="font-semibold">
                   Restart
                 </Button>
@@ -292,7 +361,7 @@ export function GameBoard() {
           </div>
 
           {/* Stats -- mobile */}
-          {started && playing && (
+          {phase === "playing" && (
             <div className="sm:hidden flex items-center justify-center gap-4 mt-2 text-xs">
               <span className="text-muted-foreground">Moves: <strong className="text-foreground">{moves}</strong></span>
               <span className="text-muted-foreground">Time: <strong className="text-foreground font-mono">{formatTime(time)}</strong></span>
@@ -304,53 +373,115 @@ export function GameBoard() {
 
       {/* -------- MAIN -------- */}
       <main className="container mx-auto px-4 py-6 flex-1 flex flex-col">
-        {/* ---- Player registration (if no player) ---- */}
-        {!player && (
+        
+        {/* ==== PHASE: Select number of players ==== */}
+        {phase === "select-players" && (
           <div className="flex-1 flex items-center justify-center">
-            <div className="max-w-sm w-full text-center">
+            <div className="max-w-md w-full text-center">
               <KyrgyzLogo className="text-primary mx-auto mb-6" size={88} />
-              <h2 className="text-3xl font-bold text-foreground mb-2">Welcome!</h2>
-              <p className="text-muted-foreground mb-6">Enter your name to start playing and save your scores.</p>
+              <h2 className="text-3xl font-bold text-foreground mb-2">Select Players</h2>
+              <p className="text-muted-foreground mb-8">How many players will be playing?</p>
               
-              <form onSubmit={registerPlayer} className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Your name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  maxLength={50}
-                  className="text-center text-lg"
-                  autoFocus
-                />
-                {playerError && (
-                  <p className="text-destructive text-sm">{playerError}</p>
-                )}
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full font-bold"
-                  disabled={playerLoading}
-                >
-                  {playerLoading ? "Registering..." : "Start Playing"}
-                </Button>
-              </form>
-
-              <p className="text-xs text-muted-foreground mt-4">
-                Your scores will be saved to the leaderboard!
-              </p>
+              <div className="flex flex-col gap-4">
+                {[1, 2, 3].map((count) => (
+                  <Button
+                    key={count}
+                    onClick={() => selectPlayerCount(count)}
+                    variant="outline"
+                    size="lg"
+                    className="w-full text-lg font-bold py-8 hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    <Users className="w-6 h-6 mr-3" />
+                    {count} Player{count > 1 ? "s" : ""}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* ---- Difficulty selector (shown when player exists but game not started) ---- */}
-        {player && !playing && !isWon && (
+        {/* ==== PHASE: Enter player names ==== */}
+        {phase === "enter-names" && (
           <div className="flex-1 flex items-center justify-center">
-            <div className="max-w-sm w-full text-center">
-              <KyrgyzLogo className="text-primary mx-auto mb-6" size={88} />
-              <h2 className="text-3xl font-bold text-foreground mb-2">Choose Difficulty</h2>
-              <p className="text-muted-foreground mb-8">
-                Playing as <strong className="text-foreground">{player.name}</strong>
+            <div className="max-w-md w-full text-center">
+              <KyrgyzLogo className="text-primary mx-auto mb-6" size={72} />
+              <h2 className="text-3xl font-bold text-foreground mb-2">Enter Names</h2>
+              <p className="text-muted-foreground mb-6">
+                Enter nickname{playerCount > 1 ? "s" : ""} for {playerCount} player{playerCount > 1 ? "s" : ""}
               </p>
+              
+              <form onSubmit={submitNames} className="space-y-4">
+                {Array.from({ length: playerCount }).map((_, index) => (
+                  <div key={index} className="text-left">
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      <span className={cn(
+                        "inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs font-bold",
+                        PLAYER_COLORS[index]
+                      )}>
+                        {index + 1}
+                      </span>
+                      Player {index + 1} {index === 0 && <span className="text-destructive">*</span>}
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder={`Player ${index + 1} nickname`}
+                      value={playerNames[index]}
+                      onChange={(e) => updatePlayerName(index, e.target.value)}
+                      maxLength={20}
+                      className={cn(
+                        "text-lg",
+                        nameErrors[index] && "border-destructive"
+                      )}
+                      autoFocus={index === 0}
+                    />
+                    {nameErrors[index] && (
+                      <p className="text-destructive text-sm mt-1">{nameErrors[index]}</p>
+                    )}
+                  </div>
+                ))}
+                
+                <div className="pt-4 flex gap-3">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="flex-1 font-bold bg-transparent"
+                    onClick={() => setPhase("select-players")}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="flex-1 font-bold"
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ==== PHASE: Select difficulty ==== */}
+        {phase === "select-difficulty" && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="max-w-md w-full text-center">
+              <KyrgyzLogo className="text-primary mx-auto mb-6" size={72} />
+              <h2 className="text-3xl font-bold text-foreground mb-2">Choose Difficulty</h2>
+              
+              {/* Show players */}
+              <div className="flex justify-center gap-2 mb-6">
+                {players.map((p, i) => (
+                  <div key={p.id} className={cn(
+                    "px-4 py-2 rounded-full text-sm font-semibold",
+                    PLAYER_COLORS[i]
+                  )}>
+                    {p.name}
+                  </div>
+                ))}
+              </div>
+              
               <div className="flex flex-col gap-3">
                 {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
                   <Button
@@ -364,58 +495,142 @@ export function GameBoard() {
                   </Button>
                 ))}
               </div>
+              
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="mt-6 text-muted-foreground"
-                onClick={logoutPlayer}
+                onClick={() => setPhase("enter-names")}
               >
-                Change player
+                Change names
               </Button>
             </div>
           </div>
         )}
 
-        {/* ---- Hint banner ---- */}
-        {hint && (
-          <div className="max-w-lg mx-auto mb-4 p-3 bg-secondary/40 border border-secondary rounded-xl text-center text-sm text-foreground animate-in fade-in slide-in-from-top-2">
-            <strong className="mr-1">Hint:</strong>{hint}
-          </div>
-        )}
-
-        {/* ---- Card grid ---- */}
-        {cards.length > 0 && playing && (
-          <div
-            className={cn(
-              "grid gap-2 sm:gap-3 max-w-4xl mx-auto w-full",
-              DIFFICULTY[difficulty].cols,
+        {/* ==== PHASE: Playing ==== */}
+        {phase === "playing" && (
+          <>
+            {/* Player turn indicator (multiplayer) */}
+            {players.length > 1 && (
+              <div className="max-w-4xl mx-auto w-full mb-4">
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  {players.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all",
+                        i === currentPlayerIndex 
+                          ? cn(PLAYER_COLORS[i], "ring-2 ring-offset-2 ring-primary scale-105")
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <User className="w-4 h-4" />
+                      <span>{p.name}</span>
+                      <span className="font-bold">({p.score})</span>
+                      {i === currentPlayerIndex && (
+                        <span className="text-xs animate-pulse">Turn</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-          >
-            {cards.map((card, idx) => (
-              <MemoryCard
-                key={card.uniqueId}
-                item={card}
-                isFlipped={flipped.includes(idx)}
-                isMatched={matched.includes(card.uniqueId)}
-                onClick={() => handleClick(idx)}
-                disabled={checking}
-              />
-            ))}
-          </div>
+
+            {/* Single player score display */}
+            {players.length === 1 && currentPlayer && (
+              <div className="max-w-4xl mx-auto w-full mb-4">
+                <div className="flex items-center justify-center">
+                  <div className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold",
+                    PLAYER_COLORS[0]
+                  )}>
+                    <User className="w-4 h-4" />
+                    <span>{currentPlayer.name}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Hint banner */}
+            {hint && (
+              <div className="max-w-lg mx-auto mb-4 p-3 bg-secondary/40 border border-secondary rounded-xl text-center text-sm text-foreground animate-in fade-in slide-in-from-top-2">
+                <strong className="mr-1">Hint:</strong>{hint}
+              </div>
+            )}
+
+            {/* Card grid */}
+            <div
+              className={cn(
+                "grid gap-2 sm:gap-3 max-w-4xl mx-auto w-full",
+                DIFFICULTY[difficulty].cols,
+              )}
+            >
+              {cards.map((card, idx) => (
+                <MemoryCard
+                  key={card.uniqueId}
+                  item={card}
+                  isFlipped={flipped.includes(idx)}
+                  isMatched={matched.includes(card.uniqueId)}
+                  onClick={() => handleClick(idx)}
+                  disabled={checking}
+                />
+              ))}
+            </div>
+          </>
         )}
 
-        {/* ---- Win overlay ---- */}
-        {isWon && player && (
+        {/* ==== PHASE: Finished (Win screen) ==== */}
+        {phase === "finished" && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-card border-2 border-primary/20 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl animate-in zoom-in-95 fade-in duration-300">
               <KyrgyzLogo className="text-primary mx-auto mb-4" size={80} />
-              <h2 className="text-3xl font-bold text-foreground mb-2">Congratulations!</h2>
-              <p className="text-muted-foreground mb-6">
-                <strong className="text-foreground">{player.name}</strong>, you found all{" "}
-                <strong className="text-foreground">{totalPairs} pairs</strong> in{" "}
-                <strong className="text-foreground">{moves} moves</strong> and{" "}
-                <strong className="text-foreground font-mono">{formatTime(time)}</strong>!
-              </p>
+              
+              {players.length === 1 ? (
+                <>
+                  <h2 className="text-3xl font-bold text-foreground mb-2">Congratulations!</h2>
+                  <p className="text-muted-foreground mb-6">
+                    <strong className="text-foreground">{winner?.name}</strong>, you found all{" "}
+                    <strong className="text-foreground">{totalPairs} pairs</strong> in{" "}
+                    <strong className="text-foreground">{moves} moves</strong> and{" "}
+                    <strong className="text-foreground font-mono">{formatTime(time)}</strong>!
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-3xl font-bold text-foreground mb-2">
+                    {isTie ? "It's a Tie!" : "Winner!"}
+                  </h2>
+                  {!isTie && winner && (
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <Crown className="w-8 h-8 text-yellow-500" />
+                      <span className="text-2xl font-bold text-foreground">{winner.name}</span>
+                    </div>
+                  )}
+                  
+                  {/* Scoreboard */}
+                  <div className="bg-muted/50 rounded-xl p-4 mb-6">
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">Final Scores</h3>
+                    <div className="space-y-2">
+                      {sortedPlayers.map((p, i) => (
+                        <div 
+                          key={p.id}
+                          className={cn(
+                            "flex items-center justify-between px-4 py-2 rounded-lg",
+                            i === 0 && !isTie ? "bg-primary/10" : "bg-background"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {i === 0 && !isTie && <Crown className="w-4 h-4 text-yellow-500" />}
+                            <span className="font-semibold text-foreground">{p.name}</span>
+                          </div>
+                          <span className="text-xl font-bold text-foreground">{p.score}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-3 gap-3 mb-6">
                 <StatCard label="Moves" value={String(moves)} />
@@ -445,7 +660,10 @@ export function GameBoard() {
                   </Button>
                 </Link>
               </div>
-              <Button variant="ghost" asChild className="mt-3 w-full text-muted-foreground">
+              <Button variant="ghost" className="mt-3 w-full text-muted-foreground" onClick={restartCompletely}>
+                New Game (Change Players)
+              </Button>
+              <Button variant="ghost" asChild className="w-full text-muted-foreground">
                 <Link href="/">Back to Home</Link>
               </Button>
             </div>
