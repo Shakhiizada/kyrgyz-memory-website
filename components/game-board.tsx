@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { KyrgyzLogo } from "./kyrgyz-pattern";
-import { Trophy, User, Users, Crown } from "lucide-react";
+import { Trophy, User, Users, Crown, Volume2, VolumeX, Music, Music2 } from "lucide-react";
+import { useGameAudio } from "@/hooks/use-game-audio";
 
 /* ------------------------------------------------------------------ */
 /*  Types & config                                                      */
@@ -70,6 +71,9 @@ export function GameBoard() {
   const [scoreSaving, setScoreSaving] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /* ---------- audio ---------- */
+  const audio = useGameAudio();
 
   /* ---------- helpers ---------- */
   const clearTimer = useCallback(() => {
@@ -234,8 +238,10 @@ export function GameBoard() {
       setPhase("finished");
       clearTimer();
       saveScores();
+      audio.playWin();
+      audio.stopMusic();
     }
-  }, [isWon, phase, clearTimer, saveScores]);
+  }, [isWon, phase, clearTimer, saveScores, audio]);
 
   /* ---------- switch to next player (multiplayer) ---------- */
   const switchToNextPlayer = useCallback(() => {
@@ -254,6 +260,7 @@ export function GameBoard() {
 
     const next = [...flipped, index];
     setFlipped(next);
+    audio.playFlip();
 
     // second card flipped
     if (next.length === 2) {
@@ -272,6 +279,7 @@ export function GameBoard() {
           setChecking(false);
           setFactItem(cardA);
           setFactOpen(true);
+          audio.playMatch();
           
           // Update current player's score
           setPlayers(prev => prev.map((p, i) => 
@@ -342,7 +350,27 @@ export function GameBoard() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              {/* Audio controls */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={audio.toggleSound}
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                title={audio.soundEnabled ? "Mute sounds" : "Unmute sounds"}
+              >
+                {audio.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={audio.toggleMusic}
+                className={`h-9 w-9 ${audio.musicEnabled ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                title={audio.musicEnabled ? "Stop music" : "Play music"}
+              >
+                {audio.musicEnabled ? <Music className="w-4 h-4" /> : <Music2 className="w-4 h-4" />}
+              </Button>
+              
               {phase === "playing" && (
                 <Button variant="outline" size="sm" onClick={() => startGame(difficulty)} className="font-semibold">
                   Restart
