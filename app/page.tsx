@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { KyrgyzLogo, DecorativeBorder } from "@/components/kyrgyz-pattern";
 import { kyrgyzItems } from "@/lib/game-data";
+import { Trophy } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Static data                                                         */
@@ -76,6 +77,12 @@ export default function HomePage() {
             <span className="font-extrabold text-lg text-foreground tracking-tight">Kyrgyz Memory</span>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/leaderboard">
+              <Button variant="ghost" size="sm" className="font-semibold text-muted-foreground hover:text-foreground">
+                <Trophy className="w-4 h-4 mr-1" />
+                Leaderboard
+              </Button>
+            </Link>
             <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="font-semibold text-muted-foreground hover:text-foreground">
@@ -167,6 +174,12 @@ export default function HomePage() {
               >
                 About / Rules
               </Button>
+            </div>
+            <div className="mt-6">
+              <Link href="/leaderboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Trophy className="w-4 h-4" />
+                <span className="text-sm font-medium">View Leaderboard</span>
+              </Link>
             </div>
           </div>
         </div>
