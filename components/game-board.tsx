@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { KyrgyzLogo } from "./kyrgyz-pattern";
-import { Trophy, User, Users, Crown, Volume2, VolumeX, Music, Music2 } from "lucide-react";
+import { Trophy, User, Users, Crown, Music, Music2, Timer } from "lucide-react";
 import { useGameAudio } from "@/hooks/use-game-audio";
 
 /* ------------------------------------------------------------------ */
@@ -23,13 +23,14 @@ interface Player {
   id: number;
   name: string;
   score: number;
-  dbId?: number; // ID from database if registered
+  dbId?: number;
 }
 
-const DIFFICULTY: Record<Difficulty, { pairs: number; cols: string; label: string }> = {
-  easy:   { pairs: 8,  cols: "grid-cols-4",               label: "Easy (4 x 4)" },
-  medium: { pairs: 12, cols: "grid-cols-4 sm:grid-cols-6", label: "Medium (6 x 4)" },
-  hard:   { pairs: 16, cols: "grid-cols-4 sm:grid-cols-8", label: "Hard (8 x 4)" },
+// Countdown timers in seconds
+const DIFFICULTY: Record<Difficulty, { pairs: number; cols: string; label: string; time: number }> = {
+  easy:   { pairs: 8,  cols: "grid-cols-4",               label: "Easy (4x4)",   time: 60  },
+  medium: { pairs: 12, cols: "grid-cols-4 sm:grid-cols-6", label: "Medium (6x4)", time: 120 },
+  hard:   { pairs: 16, cols: "grid-cols-4 sm:grid-cols-8", label: "Hard (8x4)",   time: 180 },
 };
 
 const PLAYER_COLORS = [
@@ -58,13 +59,14 @@ export function GameBoard() {
   const [flipped, setFlipped]         = useState<number[]>([]);
   const [matched, setMatched]         = useState<string[]>([]);
   const [moves, setMoves]             = useState(0);
-  const [time, setTime]               = useState(0);
+  const [timeLeft, setTimeLeft]       = useState(60); // countdown timer
   const [difficulty, setDifficulty]   = useState<Difficulty>("easy");
 
   const [factItem, setFactItem]       = useState<KyrgyzItem | null>(null);
   const [factOpen, setFactOpen]       = useState(false);
   const [hint, setHint]               = useState<string | null>(null);
   const [checking, setChecking]       = useState(false);
+  const [shuffleNotice, setShuffleNotice] = useState(false);
   
   /* ---------- score saving state ---------- */
   const [scoreSaved, setScoreSaved] = useState(false);
@@ -72,7 +74,7 @@ export function GameBoard() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* ---------- audio ---------- */
+  /* ---------- audio (background music only) ---------- */
   const audio = useGameAudio();
 
   /* ---------- helpers ---------- */
@@ -90,6 +92,44 @@ export function GameBoard() {
   };
 
   const currentPlayer = players[currentPlayerIndex];
+
+  /* ---------- shuffle unmatched cards ---------- */
+  const shuffleUnmatchedCards = useCallback(() => {
+    setCards(prevCards => {
+      // Get indices of unmatched cards
+      const unmatchedIndices: number[] = [];
+      const unmatchedCards: (KyrgyzItem & { uniqueId: string })[] = [];
+      
+      prevCards.forEach((card, idx) => {
+        if (!matched.includes(card.uniqueId)) {
+          unmatchedIndices.push(idx);
+          unmatchedCards.push(card);
+        }
+      });
+
+      // Shuffle the unmatched cards using Fisher-Yates
+      for (let i = unmatchedCards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [unmatchedCards[i], unmatchedCards[j]] = [unmatchedCards[j], unmatchedCards[i]];
+      }
+
+      // Create new cards array with shuffled unmatched cards
+      const newCards = [...prevCards];
+      unmatchedIndices.forEach((originalIdx, i) => {
+        newCards[originalIdx] = unmatchedCards[i];
+      });
+
+      return newCards;
+    });
+
+    // Show shuffle notice
+    setShuffleNotice(true);
+    setTimeout(() => setShuffleNotice(false), 2000);
+    
+    // Reset flipped cards
+    setFlipped([]);
+    setChecking(false);
+  }, [matched]);
 
   /* ---------- select player count ---------- */
   const selectPlayerCount = (count: number) => {
@@ -118,13 +158,11 @@ export function GameBoard() {
       return;
     }
 
-    // Create players array
     const newPlayers: Player[] = [];
     
     for (let i = 0; i < playerCount; i++) {
       const name = playerNames[i].trim();
       
-      // Try to register player in database
       try {
         const res = await fetch("/api/players", {
           method: "POST",
@@ -158,7 +196,6 @@ export function GameBoard() {
     newNames[index] = value;
     setPlayerNames(newNames);
     
-    // Clear error when typing
     if (nameErrors[index]) {
       const newErrors = [...nameErrors];
       newErrors[index] = "";
@@ -172,7 +209,6 @@ export function GameBoard() {
     
     setScoreSaving(true);
     
-    // Save score for winner (or single player)
     const winner = [...players].sort((a, b) => b.score - a.score)[0];
     
     if (winner?.dbId) {
@@ -184,7 +220,7 @@ export function GameBoard() {
             player_id: winner.dbId,
             difficulty,
             moves,
-            time_seconds: time,
+            time_seconds: DIFFICULTY[difficulty].time - timeLeft,
             pairs_found: cards.length / 2,
             completed: true,
           }),
@@ -196,7 +232,7 @@ export function GameBoard() {
     }
     
     setScoreSaving(false);
-  }, [players, scoreSaved, scoreSaving, difficulty, moves, time, cards.length]);
+  }, [players, scoreSaved, scoreSaving, difficulty, moves, timeLeft, cards.length]);
 
   /* ---------- start / restart ---------- */
   const startGame = useCallback((diff: Difficulty) => {
@@ -206,7 +242,7 @@ export function GameBoard() {
     setFlipped([]);
     setMatched([]);
     setMoves(0);
-    setTime(0);
+    setTimeLeft(DIFFICULTY[diff].time); // Set countdown timer
     setDifficulty(diff);
     setCurrentPlayerIndex(0);
     setHint(null);
@@ -215,20 +251,29 @@ export function GameBoard() {
     setFactOpen(false);
     setScoreSaved(false);
     setScoreSaving(false);
+    setShuffleNotice(false);
     
-    // Reset player scores
     setPlayers(prev => prev.map(p => ({ ...p, score: 0 })));
     
     setPhase("playing");
   }, [clearTimer]);
 
-  /* ---------- timer ---------- */
+  /* ---------- countdown timer ---------- */
   useEffect(() => {
     if (phase === "playing" && matched.length < cards.length) {
-      timerRef.current = setInterval(() => setTime((t) => t + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((t) => {
+          if (t <= 1) {
+            // Time's up! Shuffle unmatched cards
+            shuffleUnmatchedCards();
+            return DIFFICULTY[difficulty].time; // Reset timer
+          }
+          return t - 1;
+        });
+      }, 1000);
     }
     return clearTimer;
-  }, [phase, matched.length, cards.length, clearTimer]);
+  }, [phase, matched.length, cards.length, clearTimer, shuffleUnmatchedCards, difficulty]);
 
   /* ---------- win detection ---------- */
   const isWon = cards.length > 0 && matched.length === cards.length;
@@ -238,7 +283,6 @@ export function GameBoard() {
       setPhase("finished");
       clearTimer();
       saveScores();
-      audio.playWin();
       audio.stopMusic();
     }
   }, [isWon, phase, clearTimer, saveScores, audio]);
@@ -252,7 +296,6 @@ export function GameBoard() {
 
   /* ---------- card click ---------- */
   const handleClick = useCallback((index: number) => {
-    // guards
     if (checking) return;
     if (flipped.includes(index)) return;
     if (matched.includes(cards[index]?.uniqueId)) return;
@@ -260,9 +303,7 @@ export function GameBoard() {
 
     const next = [...flipped, index];
     setFlipped(next);
-    audio.playFlip();
 
-    // second card flipped
     if (next.length === 2) {
       setChecking(true);
       setMoves((m) => m + 1);
@@ -272,31 +313,25 @@ export function GameBoard() {
       const cardB = cards[b];
 
       if (cardA.id === cardB.id) {
-        // matched - current player gets a point
         setTimeout(() => {
           setMatched((prev) => [...prev, cardA.uniqueId, cardB.uniqueId]);
           setFlipped([]);
           setChecking(false);
           setFactItem(cardA);
           setFactOpen(true);
-          audio.playMatch();
 
-          // Update current player's score
           setPlayers(prev => prev.map((p, i) =>
             i === currentPlayerIndex ? { ...p, score: p.score + 1 } : p
           ));
-
-          // Player gets another turn on match (don't switch)
-        }, 250);
+        }, 200);
       } else {
-        // mismatch -- show hint, flip back, switch player
-        setHint(`Remember: ${cardA.name} and ${cardB.name} are in different positions!`);
+        setHint(`${cardA.name} and ${cardB.name} don't match!`);
         setTimeout(() => {
           setFlipped([]);
           setHint(null);
           setChecking(false);
           switchToNextPlayer();
-        }, 800);
+        }, 600);
       }
     }
   }, [cards, flipped, matched, checking, currentPlayerIndex, switchToNextPlayer]);
@@ -313,16 +348,18 @@ export function GameBoard() {
     setFlipped([]);
     setMatched([]);
     setMoves(0);
-    setTime(0);
+    setTimeLeft(60);
   };
 
   const totalPairs   = cards.length / 2;
   const matchedPairs = matched.length / 2;
   
-  // Get winner(s) for multiplayer
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   const winner = sortedPlayers[0];
   const isTie = players.length > 1 && sortedPlayers.filter(p => p.score === winner?.score).length > 1;
+
+  // Timer warning colors
+  const timerColor = timeLeft <= 10 ? "text-destructive" : timeLeft <= 30 ? "text-orange-500" : "text-foreground";
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -344,28 +381,28 @@ export function GameBoard() {
             {phase === "playing" && (
               <div className="hidden sm:flex items-center gap-3 text-sm">
                 <Stat label="Moves" value={String(moves)} />
-                <Stat label="Time" value={formatTime(time)} mono />
+                <div className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                  timeLeft <= 10 ? "bg-destructive/20" : timeLeft <= 30 ? "bg-orange-100" : "bg-muted"
+                )}>
+                  <Timer className={cn("w-4 h-4", timerColor)} />
+                  <span className={cn("font-bold font-mono", timerColor)}>{formatTime(timeLeft)}</span>
+                </div>
                 <Stat label="Pairs" value={`${matchedPairs}/${totalPairs}`} />
               </div>
             )}
 
             {/* Actions */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              {/* Audio controls */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={audio.toggleSound}
-                className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                title={audio.soundEnabled ? "Mute sounds" : "Unmute sounds"}
-              >
-                {audio.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </Button>
+              {/* Music toggle */}
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={audio.toggleMusic}
-                className={`h-9 w-9 ${audio.musicEnabled ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                className={cn(
+                  "h-9 w-9",
+                  audio.musicEnabled ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
                 title={audio.musicEnabled ? "Stop music" : "Play music"}
               >
                 {audio.musicEnabled ? <Music className="w-4 h-4" /> : <Music2 className="w-4 h-4" />}
@@ -392,7 +429,10 @@ export function GameBoard() {
           {phase === "playing" && (
             <div className="sm:hidden flex items-center justify-center gap-4 mt-2 text-xs">
               <span className="text-muted-foreground">Moves: <strong className="text-foreground">{moves}</strong></span>
-              <span className="text-muted-foreground">Time: <strong className="text-foreground font-mono">{formatTime(time)}</strong></span>
+              <span className={cn("flex items-center gap-1", timerColor)}>
+                <Timer className="w-3 h-3" />
+                <strong className="font-mono">{formatTime(timeLeft)}</strong>
+              </span>
               <span className="text-muted-foreground">Pairs: <strong className="text-foreground">{matchedPairs}/{totalPairs}</strong></span>
             </div>
           )}
@@ -519,7 +559,13 @@ export function GameBoard() {
                     size="lg"
                     className="w-full text-base font-bold capitalize hover:bg-primary hover:text-primary-foreground transition-colors py-6"
                   >
-                    {DIFFICULTY[d].label}
+                    <div className="flex items-center justify-between w-full px-2">
+                      <span>{DIFFICULTY[d].label}</span>
+                      <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                        <Timer className="w-4 h-4" />
+                        {DIFFICULTY[d].time / 60} min
+                      </span>
+                    </div>
                   </Button>
                 ))}
               </div>
@@ -539,6 +585,13 @@ export function GameBoard() {
         {/* ==== PHASE: Playing ==== */}
         {phase === "playing" && (
           <>
+            {/* Shuffle notice */}
+            {shuffleNotice && (
+              <div className="max-w-lg mx-auto mb-4 p-3 bg-orange-100 border border-orange-300 rounded-xl text-center text-sm text-orange-800 font-semibold animate-in fade-in slide-in-from-top-2">
+                Time ran out! Cards have been shuffled.
+              </div>
+            )}
+
             {/* Player turn indicator (multiplayer) */}
             {players.length > 1 && (
               <div className="max-w-4xl mx-auto w-full mb-4">
@@ -620,8 +673,7 @@ export function GameBoard() {
                   <p className="text-muted-foreground mb-6">
                     <strong className="text-foreground">{winner?.name}</strong>, you found all{" "}
                     <strong className="text-foreground">{totalPairs} pairs</strong> in{" "}
-                    <strong className="text-foreground">{moves} moves</strong> and{" "}
-                    <strong className="text-foreground font-mono">{formatTime(time)}</strong>!
+                    <strong className="text-foreground">{moves} moves</strong>!
                   </p>
                 </>
               ) : (
@@ -660,9 +712,8 @@ export function GameBoard() {
                 </>
               )}
 
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 <StatCard label="Moves" value={String(moves)} />
-                <StatCard label="Time"  value={formatTime(time)} />
                 <StatCard label="Level" value={difficulty} />
               </div>
 
