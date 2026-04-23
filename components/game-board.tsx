@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { KyrgyzLogo } from "./kyrgyz-pattern";
 import { Trophy, User, Users, Crown, Music, Music2, Timer } from "lucide-react";
 import { useGameAudio } from "@/hooks/use-game-audio";
+import { useAuth } from "@/contexts/auth-context";
 
 /* ------------------------------------------------------------------ */
 /*  Types & config                                                      */
@@ -76,6 +77,16 @@ export function GameBoard() {
 
   /* ---------- audio (background music only) ---------- */
   const audio = useGameAudio();
+  
+  /* ---------- auth ---------- */
+  const { user } = useAuth();
+  
+  /* ---------- pre-fill name if logged in ---------- */
+  useEffect(() => {
+    if (user && playerNames[0] === "") {
+      setPlayerNames(prev => [user.username, prev[1], prev[2]]);
+    }
+  }, [user, playerNames]);
 
   /* ---------- helpers ---------- */
   const clearTimer = useCallback(() => {

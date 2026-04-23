@@ -1,19 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KyrgyzLogo, DecorativeBorder } from "@/components/kyrgyz-pattern";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { user, loading, register } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/");
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,34 +44,24 @@ export default function RegisterPage() {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
 
-    try {
-      // First, ensure the users table exists
-      await fetch("/api/migrate", { method: "POST" });
+    const result = await register(username.trim(), password);
 
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Registration failed");
-        setLoading(false);
-        return;
-      }
-
-      // Success - redirect to home
-      router.push("/");
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
+    if (!result.success) {
+      setError(result.error || "Registration failed");
+      setSubmitting(false);
+      return;
     }
+
+    // Success - user is automatically logged in, redirect to home
+    router.push("/");
   };
+
+  // Don't show form if already logged in
+  if (!loading && user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -136,9 +135,9 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full font-bold text-base py-5"
-              disabled={loading}
+              disabled={submitting}
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {submitting ? "Creating account..." : "Create Account"}
             </Button>
           </form>
 

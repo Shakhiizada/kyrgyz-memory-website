@@ -54,6 +54,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const playerId = searchParams.get('player_id');
+    const username = searchParams.get('username');
+
+    // Get by username (for logged-in users)
+    if (username) {
+      const scores = await sql`
+        SELECT gs.id, gs.difficulty, gs.moves, gs.time_seconds, gs.pairs_found, gs.completed, gs.played_at
+        FROM game_scores gs
+        JOIN players p ON gs.player_id = p.id
+        WHERE LOWER(p.name) = LOWER(${username})
+        ORDER BY gs.played_at DESC
+        LIMIT 50
+      `;
+      return NextResponse.json({ scores });
+    }
 
     if (playerId) {
       const scores = await sql`

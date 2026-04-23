@@ -1,47 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KyrgyzLogo, DecorativeBorder } from "@/components/kyrgyz-pattern";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, loading, login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/");
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setSubmitting(true);
 
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+    const result = await login(username, password);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        setLoading(false);
-        return;
-      }
-
-      // Success - redirect to home
-      router.push("/");
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
+    if (!result.success) {
+      setError(result.error || "Login failed");
+      setSubmitting(false);
+      return;
     }
+
+    // Success - redirect to home
+    router.push("/");
   };
+
+  // Don't show form if already logged in
+  if (!loading && user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -98,9 +100,9 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full font-bold text-base py-5"
-              disabled={loading}
+              disabled={submitting}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {submitting ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 

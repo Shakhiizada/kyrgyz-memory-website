@@ -15,6 +15,7 @@ import { KyrgyzLogo, DecorativeBorder } from "@/components/kyrgyz-pattern";
 import { kyrgyzItems } from "@/lib/game-data";
 import { Trophy, Music, Music2, LogIn, LogOut, User } from "lucide-react";
 import { useGameAudio } from "@/hooks/use-game-audio";
+import { useAuth } from "@/contexts/auth-context";
 
 /* ------------------------------------------------------------------ */
 /*  Static data                                                         */
@@ -67,20 +68,8 @@ const showcaseItems = kyrgyzItems.slice(0, 6);
 
 export default function HomePage() {
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [user, setUser] = useState<{ id: number; username: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, logout } = useAuth();
   const audio = useGameAudio();
-
-  // Check if user is logged in
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data.user);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
 
   // Auto-start music on first interaction
   useEffect(() => {
@@ -95,8 +84,7 @@ export default function HomePage() {
   }, [audio]);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
+    await logout();
   };
 
   return (
@@ -177,10 +165,15 @@ export default function HomePage() {
             {!loading && (
               user ? (
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Link href="/profile" className="hidden sm:flex items-center gap-1.5 text-sm text-foreground hover:text-primary transition-colors">
                     <User className="w-4 h-4" />
-                    {user.username}
-                  </span>
+                    <span className="font-semibold">{user.username}</span>
+                  </Link>
+                  <Link href="/profile" className="sm:hidden">
+                    <Button variant="ghost" size="icon" className="text-foreground">
+                      <User className="w-4 h-4" />
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="sm" onClick={handleLogout} className="font-semibold text-muted-foreground">
                     <LogOut className="w-4 h-4 sm:mr-1" />
                     <span className="hidden sm:inline">Logout</span>
