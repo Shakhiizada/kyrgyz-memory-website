@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { KyrgyzLogo, DecorativeBorder } from "@/components/kyrgyz-pattern";
 import { kyrgyzItems } from "@/lib/game-data";
+import { Trophy, Music, Music2, LogIn, LogOut, User } from "lucide-react";
+import { useGameAudio } from "@/hooks/use-game-audio";
+import { useAuth } from "@/contexts/auth-context";
 
 /* ------------------------------------------------------------------ */
 /*  Static data                                                         */
@@ -53,7 +56,7 @@ const features = [
       </svg>
     ),
     title: "Challenge Yourself",
-    description: "Three difficulty levels -- Easy, Medium, and Hard -- to test your memory skills.",
+    description: "Three difficulty levels with countdown timers to test your memory skills.",
   },
 ];
 
@@ -65,6 +68,24 @@ const showcaseItems = kyrgyzItems.slice(0, 6);
 
 export default function HomePage() {
   const [rulesOpen, setRulesOpen] = useState(false);
+  const { user, loading, logout } = useAuth();
+  const audio = useGameAudio();
+
+  // Auto-start music on first interaction
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (!audio.musicEnabled) {
+        audio.startMusic();
+      }
+      document.removeEventListener("click", handleFirstInteraction);
+    };
+    document.addEventListener("click", handleFirstInteraction);
+    return () => document.removeEventListener("click", handleFirstInteraction);
+  }, [audio]);
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,7 +96,24 @@ export default function HomePage() {
             <KyrgyzLogo className="text-primary" size={36} />
             <span className="font-extrabold text-lg text-foreground tracking-tight">Kyrgyz Memory</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Music toggle */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={audio.toggleMusic}
+              className={audio.musicEnabled ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+              title={audio.musicEnabled ? "Stop music" : "Play music"}
+            >
+              {audio.musicEnabled ? <Music className="w-4 h-4" /> : <Music2 className="w-4 h-4" />}
+            </Button>
+
+            <Link href="/leaderboard">
+              <Button variant="ghost" size="sm" className="font-semibold text-muted-foreground hover:text-foreground">
+                <Trophy className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Leaderboard</span>
+              </Button>
+            </Link>
             <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="font-semibold text-muted-foreground hover:text-foreground">
@@ -96,7 +134,7 @@ export default function HomePage() {
                       {[
                         ["1", "Click any card", "to flip it and reveal a Kyrgyz cultural symbol."],
                         ["2", "Click a second card", "to find its match. Remember positions!"],
-                        ["3", "Match all pairs", "to win. Each match reveals an educational fact."],
+                        ["3", "Match all pairs", "before time runs out to win."],
                       ].map(([n, bold, rest]) => (
                         <div key={n} className="flex gap-3 items-start">
                           <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold shrink-0">{n}</span>
@@ -107,10 +145,13 @@ export default function HomePage() {
                     <div className="bg-muted rounded-lg p-4 mt-4">
                       <h4 className="font-bold mb-2">Difficulty Levels:</h4>
                       <ul className="space-y-1 text-sm text-muted-foreground">
-                        <li><strong className="text-foreground">Easy:</strong> 16 cards (8 pairs) -- 4 x 4 grid</li>
-                        <li><strong className="text-foreground">Medium:</strong> 24 cards (12 pairs) -- 6 x 4 grid</li>
-                        <li><strong className="text-foreground">Hard:</strong> 32 cards (16 pairs) -- 8 x 4 grid</li>
+                        <li><strong className="text-foreground">Easy:</strong> 16 cards (8 pairs) - 1 minute</li>
+                        <li><strong className="text-foreground">Medium:</strong> 24 cards (12 pairs) - 2 minutes</li>
+                        <li><strong className="text-foreground">Hard:</strong> 32 cards (16 pairs) - 3 minutes</li>
                       </ul>
+                      <p className="text-sm text-muted-foreground mt-3">
+                        If time runs out, unmatched cards will shuffle and the timer resets!
+                      </p>
                     </div>
                   </div>
                 </DialogDescription>
@@ -119,6 +160,35 @@ export default function HomePage() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Auth buttons */}
+            {!loading && (
+              user ? (
+                <div className="flex items-center gap-2">
+                  <Link href="/profile" className="hidden sm:flex items-center gap-1.5 text-sm text-foreground hover:text-primary transition-colors">
+                    <User className="w-4 h-4" />
+                    <span className="font-semibold">{user.username}</span>
+                  </Link>
+                  <Link href="/profile" className="sm:hidden">
+                    <Button variant="ghost" size="icon" className="text-foreground">
+                      <User className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="font-semibold text-muted-foreground">
+                    <LogOut className="w-4 h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </Button>
+                </div>
+              ) : (
+                <Link href="/login">
+                  <Button variant="outline" size="sm" className="font-semibold">
+                    <LogIn className="w-4 h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
+                </Link>
+              )
+            )}
+
             <Button asChild size="sm" className="font-bold">
               <Link href="/game">Play Now</Link>
             </Button>
@@ -167,6 +237,18 @@ export default function HomePage() {
               >
                 About / Rules
               </Button>
+            </div>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/leaderboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Trophy className="w-4 h-4" />
+                <span className="text-sm font-medium">View Leaderboard</span>
+              </Link>
+              {!user && (
+                <Link href="/register" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Create Account</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -260,7 +342,7 @@ export default function HomePage() {
             </p>
             <p className="text-muted-foreground leading-relaxed">
               The circular logo of this game is inspired by traditional Kyrgyz felt art,
-              depicting the snow-capped Tian Shan mountains and a winding river --
+              depicting the snow-capped Tian Shan mountains and a flowing river --
               symbols of the country{"'"}s breathtaking nature. The Tunduk crown at the
               top represents the unity of 40 Kyrgyz tribes, as seen on the national flag.
             </p>

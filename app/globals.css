@@ -143,9 +143,9 @@
   }
 }
 
-/* 3D Card Flip Animations */
+/* 3D Card Flip — fast & smooth */
 .perspective-1000 {
-  perspective: 1000px;
+  perspective: 900px;
 }
 
 .transform-style-preserve-3d {
@@ -153,11 +153,18 @@
 }
 
 .backface-hidden {
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
 .rotate-y-180 {
   transform: rotateY(180deg);
+}
+
+/* Remove heavy hover animations that cause lag */
+.card-hover-glow:hover {
+  animation: none;
+  box-shadow: 0 6px 20px rgba(197, 75, 60, 0.2);
 }
 
 /* Smooth card flip transition */
@@ -219,4 +226,64 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Card hover glow effect */
+@keyframes card-glow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 8px 24px rgba(197, 75, 60, 0.25);
+  }
+}
+
+.card-hover-glow:hover {
+  animation: card-glow 1.5s ease-in-out infinite;
+}
+
+/* Bounce animation for winner */
+@keyframes winner-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-winner-bounce {
+  animation: winner-bounce 0.6s ease-in-out infinite;
+}
+
+/* Shimmer effect for matched cards */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Confetti burst animation */
+@keyframes confetti {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti 0.8s ease-out forwards;
 }

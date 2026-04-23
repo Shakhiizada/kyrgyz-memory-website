@@ -1,0 +1,6 @@
+# Kyrgyz Memory - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://kyrgyz-memory.vercel.app/sitemap.xml
