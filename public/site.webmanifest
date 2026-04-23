@@ -1,0 +1,24 @@
+{
+  "name": "Kyrgyz Memory",
+  "short_name": "KyrgyzMemory",
+  "description": "Discover Kyrgyz culture through a fun memory card game",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5e6d3",
+  "theme_color": "#c54b3c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["games", "education"],
+  "lang": "en"
+}
