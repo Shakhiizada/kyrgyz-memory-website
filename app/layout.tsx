@@ -1,3 +1,4 @@
+// Kyrgyz Memory v2.0 - Production Build
 import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Nunito } from 'next/font/google'
