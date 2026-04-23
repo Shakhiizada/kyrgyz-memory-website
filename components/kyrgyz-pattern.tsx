@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * KyrgyzLogo - Circular felt cloth (kiyiz) badge with painted mountains & river.
+ * KyrgyzLogo — круглый кыргызский платок (орнаментальная рамка + горы + река).
  *
- * Design concept:
- *   A round piece of traditional Kyrgyz felt decorated with a mountain-and-river
- *   landscape, surrounded by an ornamental red border with gold embroidery dots
- *   and ram-horn motifs. The tunduk crown sits at the top like a brooch.
+ * Дизайн:
+ *  • Внешнее кольцо — красный бордюр с золотым орнаментом (ромбы + точки)
+ *  • Внутри — небо, заснеженные горы Тянь-Шаня, зелёная долина, синяя река
+ *  • Тундук-брошь наверху (символ на флаге КР)
+ *  • Без случайных id — используем статичный уникальный prefix
  */
 export function KyrgyzLogo({
   className = "",
@@ -15,9 +16,6 @@ export function KyrgyzLogo({
   className?: string;
   size?: number;
 }) {
-  // Unique prefix so multiple logos on the same page don't collide
-  const p = `kl-${Math.random().toString(36).slice(2, 6)}`;
-
   return (
     <svg
       className={className}
@@ -28,245 +26,272 @@ export function KyrgyzLogo({
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Kyrgyz Memory logo"
     >
-      {/* ---------- DEFS ---------- */}
       <defs>
-        {/* Felt-texture radial (warm ivory centre -> sand edge) */}
-        <radialGradient id={`${p}-felt`} cx="50%" cy="42%" r="52%">
-          <stop offset="0%" stopColor="#FEF9EF" />
-          <stop offset="55%" stopColor="#FDE68A" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#F3E0C6" />
+        {/* Felt background */}
+        <radialGradient id="km-felt" cx="50%" cy="45%" r="55%">
+          <stop offset="0%"   stopColor="#FFFBEF" />
+          <stop offset="70%"  stopColor="#FEF3C7" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#FDE68A" stopOpacity="0.3" />
         </radialGradient>
 
-        {/* Sky */}
-        <linearGradient id={`${p}-sky`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0E7490" stopOpacity="0.35" />
-          <stop offset="40%" stopColor="#38BDF8" stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#BAE6FD" stopOpacity="0.08" />
+        {/* Sky gradient */}
+        <linearGradient id="km-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#1E40AF" stopOpacity="0.5" />
+          <stop offset="50%"  stopColor="#3B82F6" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="#BFDBFE" stopOpacity="0.1" />
         </linearGradient>
 
-        {/* Far mountain range */}
-        <linearGradient id={`${p}-mf`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6B7FA3" />
-          <stop offset="100%" stopColor="#94A3B8" />
+        {/* Far mountains */}
+        <linearGradient id="km-mfar" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#94A3B8" />
+          <stop offset="100%" stopColor="#CBD5E1" />
         </linearGradient>
 
-        {/* Near mountain range */}
-        <linearGradient id={`${p}-mn`} x1="-10" y1="-10" x2="-10" y2="-10">
-          <stop offset="0%" stopColor="#3E526B" />
-          <stop offset="100%" stopColor="#5B7291" />
-        </linearGradient>
-
-        {/* River */}
-        <linearGradient id={`${p}-rv`} x1="0" y1="0" x2="0" y2="0">
-          <stop offset="0%" stopColor="#1D4ED8" stopOpacity="0.85" />
-          <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.65" />
+        {/* Near mountains */}
+        <linearGradient id="km-mnear" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#334155" />
+          <stop offset="100%" stopColor="#475569" />
         </linearGradient>
 
         {/* Meadow */}
-        <linearGradient id={`${p}-md`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#34D399" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#059669" stopOpacity="0.3" />
+        <linearGradient id="km-meadow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#4ADE80" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#16A34A" stopOpacity="0.5" />
         </linearGradient>
 
-        {/* Red ring */}
-        <linearGradient id={`${p}-rr`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#DC2626" />
-          <stop offset="100%" stopColor="#7F1D1D" />
+        {/* River */}
+        <linearGradient id="km-river" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#38BDF8" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#1D4ED8" stopOpacity="0.75" />
         </linearGradient>
 
-        {/* Circular clip for the inner scene */}
-        <clipPath id={`${p}-c`}>
-          <circle cx="100" cy="100" r="74" />
+        {/* Red border ring */}
+        <linearGradient id="km-ring" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#EF4444" />
+          <stop offset="100%" stopColor="#991B1B" />
+        </linearGradient>
+
+        {/* Tunduk gold */}
+        <radialGradient id="km-tunduk-gold" cx="50%" cy="40%" r="60%">
+          <stop offset="0%"   stopColor="#FDE68A" />
+          <stop offset="100%" stopColor="#B45309" />
+        </radialGradient>
+
+        {/* Clip to circle */}
+        <clipPath id="km-clip">
+          <circle cx="100" cy="100" r="76" />
         </clipPath>
-
-        {/* Fabric stitching texture (tiny diagonal lines) */}
-        <pattern
-          id={`${p}-stitch`}
-          width="8"
-          height="8"
-          patternUnits="userSpaceOnUse"
-          patternTransform="rotate(45)"
-        >
-          <line x1="0" y1="0" x2="0" y2="8" stroke="#C6A96C" strokeWidth="0.4" opacity="0.18" />
-        </pattern>
       </defs>
 
-      {/* ---------- OUTER SHADOW ---------- */}
-      <circle cx="100" cy="103" r="96" fill="black" opacity="0.07" />
+      {/* ── DROP SHADOW ── */}
+      <circle cx="100" cy="104" r="94" fill="black" opacity="0.12" />
 
-      {/* ---------- OUTER RED FELT RING ---------- */}
-      <circle cx="100" cy="100" r="96" fill={`url(#${p}-rr)`} />
+      {/* ── OUTER RED RING ── */}
+      <circle cx="100" cy="100" r="94" fill="url(#km-ring)" />
 
-      {/* Gold outer trim */}
-      <circle cx="100" cy="100" r="96" fill="none" stroke="#DAA520" strokeWidth="2" opacity="0.6" />
+      {/* Gold outer edge */}
+      <circle cx="100" cy="100" r="94" fill="none" stroke="#F59E0B" strokeWidth="2.5" opacity="0.7" />
+      <circle cx="100" cy="100" r="89" fill="none" stroke="#FBBF24" strokeWidth="1" opacity="0.4" />
 
-      {/* Gold ornamental dots (like embroidery beads) */}
-      {Array.from({ length: 32 }).map((_, i) => {
-        const a = (i * 11.25 * Math.PI) / 180;
+      {/* ── GOLD ORNAMENTAL PATTERN on red ring ── */}
+      {/* Diamonds at 12 positions */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 30 * Math.PI) / 180;
+        const cx = 100 + 83 * Math.cos(angle - Math.PI / 2);
+        const cy = 100 + 83 * Math.sin(angle - Math.PI / 2);
         return (
-          <circle
-            key={`od-${i}`}
-            cx={100 + 90 * Math.cos(a)}
-            cy={100 + 90 * Math.sin(a)}
-            r={i % 4 === 0 ? 2 : 1.2}
-            fill="#FCD34D"
-            opacity={i % 4 === 0 ? 0.85 : 0.55}
-          />
+          <g key={`dia-${i}`} transform={`translate(${cx},${cy}) rotate(${i * 30})`}>
+            <path d="M0,-4 L3,0 0,4 -3,0Z" fill="#FCD34D" opacity="0.85" />
+          </g>
+        );
+      })}
+      {/* Small dots between diamonds */}
+      {Array.from({ length: 24 }).map((_, i) => {
+        const angle = ((i * 15 + 7.5) * Math.PI) / 180 - Math.PI / 2;
+        const cx = 100 + 83 * Math.cos(angle);
+        const cy = 100 + 83 * Math.sin(angle);
+        return (
+          <circle key={`dot-${i}`} cx={cx} cy={cy} r="1.5" fill="#FCD34D" opacity="0.55" />
         );
       })}
 
-      {/* Ram-horn ornaments around the ring (8 positions) */}
-      {Array.from({ length: 8 }).map((_, i) => {
-        const a = ((i * 45 + 22.5) * Math.PI) / 180;
-        const cx = 100 + 84 * Math.cos(a);
-        const cy = 100 + 84 * Math.sin(a);
-        const rot = i * 45 + 22.5;
+      {/* Traditional ram-horn (kazak-göz) motifs at 4 corners */}
+      {[0, 90, 180, 270].map((deg) => {
+        const a = (deg * Math.PI) / 180 - Math.PI / 2;
+        const cx = 100 + 83 * Math.cos(a);
+        const cy = 100 + 83 * Math.sin(a);
         return (
-          <g key={`rh-${i}`} transform={`rotate(${rot} ${cx} ${cy})`}>
-            {/* Simplified ram-horn double spiral */}
+          <g key={`rh-${deg}`} transform={`translate(${cx},${cy}) rotate(${deg})`}>
             <path
-              d={`M${cx - 5},${cy} C${cx - 5},${cy - 5} ${cx},${cy - 6} ${cx},${cy - 2}
-                  C${cx},${cy + 2} ${cx + 5},${cy - 6} ${cx + 5},${cy}`}
-              fill="none"
+              d="M-5,0 C-5,-6 0,-8 2,-4 C4,0 0,4 -2,2 C-4,0 -3,-3 0,-3 C3,-3 4,0 2,3"
               stroke="#FCD34D"
-              strokeWidth="1.2"
+              strokeWidth="1.3"
               strokeLinecap="round"
-              opacity="0.7"
+              fill="none"
+              opacity="0.8"
             />
           </g>
         );
       })}
 
-      {/* Inner gold trim ring */}
-      <circle cx="100" cy="100" r="78" fill="none" stroke="#DAA520" strokeWidth="1.8" opacity="0.55" />
+      {/* Inner gold divider ring */}
+      <circle cx="100" cy="100" r="80" fill="none" stroke="#F59E0B" strokeWidth="2" opacity="0.6" />
+      <circle cx="100" cy="100" r="77" fill="none" stroke="#FDE68A" strokeWidth="0.8" opacity="0.5" />
 
-      {/* ---------- INNER FELT DISC ---------- */}
-      <circle cx="100" cy="100" r="74" fill={`url(#${p}-felt)`} />
-      {/* Stitching texture overlay */}
-      <circle cx="100" cy="100" r="74" fill={`url(#${p}-stitch)`} />
+      {/* ── INNER FELT DISC ── */}
+      <circle cx="100" cy="100" r="76" fill="url(#km-felt)" />
 
-      {/* ---------- LANDSCAPE SCENE (clipped) ---------- */}
-      <g clipPath={`url(#${p}-c)`}>
-        {/* Sky fill */}
-        <rect x="26" y="26" width="148" height="148" fill={`url(#${p}-sky)`} />
+      {/* ── LANDSCAPE SCENE (clipped inside circle) ── */}
+      <g clipPath="url(#km-clip)">
 
-        {/* ---- SUN ---- */}
-        <circle cx="150" cy="48" r="18" fill="#FDE68A" opacity="0.18" />
-        <circle cx="150" cy="48" r="11" fill="#FBBF24" opacity="0.5" />
-        <circle cx="150" cy="48" r="6" fill="#FCD34D" opacity="0.85" />
-        {/* rays */}
-        {Array.from({ length: 10 }).map((_, i) => {
-          const a = (i * 36 * Math.PI) / 180;
-          return (
-            <line
-              key={`sr-${i}`}
-              x1={150 + 8 * Math.cos(a)}
-              y1={48 + 8 * Math.sin(a)}
-              x2={150 + 15 * Math.cos(a)}
-              y2={48 + 15 * Math.sin(a)}
-              stroke="#FBBF24"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              opacity="0.3"
-            />
-          );
-        })}
+        {/* Sky */}
+        <rect x="24" y="24" width="152" height="152" fill="url(#km-sky)" />
 
-        {/* ---- FAR MOUNTAINS ---- */}
-        <path
-          d="M26 112 L42 80 L55 92 L72 60 L86 76 L100 50 L114 70 L132 42 L148 62 L162 52 L174 82 L174 128 L26 128Z"
-          fill={`url(#${p}-mf)`}
-          opacity="0.4"
-        />
-        {/* Snow caps far */}
-        <path d="M100 50 L91 66 L109 66Z" fill="white" opacity="0.8" />
-        <path d="M132 42 L123 58 L141 58Z" fill="white" opacity="0.85" />
-        <path d="M72 60 L65 73 L79 73Z" fill="white" opacity="0.65" />
-
-        {/* ---- NEAR MOUNTAINS ---- */}
-        <path
-          d="M26 130 L40 106 L52 116 L68 90 L82 105 L98 82 L112 98 L126 80 L142 94 L156 82 L170 102 L174 112 L174 148 L26 148Z"
-          fill={`url(#${p}-mn)`}
-          opacity="0.6"
-        />
-        {/* Snow caps near */}
-        <path d="M98 82 L90 96 L106 96Z" fill="white" opacity="0.9" />
-        <path d="M126 80 L118 94 L134 94Z" fill="white" opacity="0.85" />
-        <path d="M68 90 L61 103 L75 103Z" fill="white" opacity="0.7" />
-
-        {/* ---- GREEN MEADOW VALLEY ---- */}
-        <path
-          d="M26 128 Q62 120, 100 124 Q138 128, 174 122 L174 180 L26 180Z"
-          fill={`url(#${p}-md)`}
-        />
-        {/* Grass texture */}
-        {[34, 52, 70, 88, 108, 126, 144, 160].map((x, i) => (
-          <circle key={`g-${i}`} cx={x} cy={136 + (i % 3) * 4} r="0.8" fill="#059669" opacity="0.22" />
-        ))}
-
-        {/* ---- WINDING RIVER ---- */}
-        <path
-          d="M106 82 C92 100, 118 112, 104 128 C90 144, 110 156, 96 174"
-          stroke={`url(#${p}-rv)`}
-          strokeWidth="8"
-          strokeLinecap="round"
-          fill="none"
-        />
-        {/* River water highlights */}
-        <path
-          d="M108 84 C94 102, 120 112, 106 128 C92 142, 112 154, 98 170"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-          opacity="0.3"
-        />
-        {/* Shimmer dots */}
-        <circle cx="107" cy="95" r="1.2" fill="white" opacity="0.5" />
-        <circle cx="114" cy="118" r="1.4" fill="white" opacity="0.4" />
-        <circle cx="100" cy="140" r="1" fill="white" opacity="0.45" />
-        <circle cx="108" cy="160" r="1.3" fill="white" opacity="0.35" />
-
-        {/* ---- BIRDS / EAGLES ---- */}
-        <path d="M52 48 Q56 43, 60 48 Q64 43, 68 48" stroke="#334155" strokeWidth="1.2" fill="none" opacity="0.35" />
-        <path d="M76 38 Q79 34, 82 38 Q85 34, 88 38" stroke="#334155" strokeWidth="0.9" fill="none" opacity="0.25" />
-        <path d="M42 60 Q44 57, 46 60 Q48 57, 50 60" stroke="#334155" strokeWidth="0.7" fill="none" opacity="0.2" />
-      </g>
-
-      {/* ---- INNER CIRCLE EDGE SHADOW ---- */}
-      <circle cx="100" cy="100" r="74" fill="none" stroke="black" strokeWidth="1.5" opacity="0.06" />
-
-      {/* ---------- TUNDUK CROWN BROOCH (top center) ---------- */}
-      <g transform="translate(100, 16)">
-        {/* Gold disc */}
-        <circle r="12" fill="#DAA520" />
-        <circle r="12" fill="none" stroke="#B8860B" strokeWidth="0.8" />
-        {/* Inner cream ring */}
-        <circle r="8.5" fill="none" stroke="#FEF3C7" strokeWidth="1.5" />
-        {/* Red centre */}
-        <circle r="4" fill="#B91C1C" />
-        {/* Tunduk spokes */}
+        {/* Sun */}
+        <circle cx="148" cy="46" r="20" fill="#FEF9C3" opacity="0.15" />
+        <circle cx="148" cy="46" r="12" fill="#FDE68A" opacity="0.45" />
+        <circle cx="148" cy="46" r="7"  fill="#FCD34D" opacity="0.9"  />
         {Array.from({ length: 8 }).map((_, i) => {
           const a = (i * 45 * Math.PI) / 180;
           return (
             <line
-              key={`tk-${i}`}
-              x1={4 * Math.cos(a)}
-              y1={4 * Math.sin(a)}
-              x2={8.5 * Math.cos(a)}
-              y2={8.5 * Math.sin(a)}
-              stroke="#FEF3C7"
-              strokeWidth="1.2"
+              key={`sun-${i}`}
+              x1={148 + 9  * Math.cos(a)} y1={46 + 9  * Math.sin(a)}
+              x2={148 + 17 * Math.cos(a)} y2={46 + 17 * Math.sin(a)}
+              stroke="#FBBF24" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"
             />
           );
         })}
+
+        {/* ── FAR MOUNTAINS (lighter, behind) ── */}
+        <path
+          d="M24 118
+             L38  88 L48  98 L60  72 L74  86
+             L88  58 L100 72
+             L112 56 L126 70
+             L138 48 L152 68
+             L166 54 L176 78
+             L176 130 L24 130Z"
+          fill="url(#km-mfar)"
+          opacity="0.45"
+        />
+        {/* Snow caps far */}
+        <path d="M88 58  L80 72  L96 72Z"  fill="white" opacity="0.85" />
+        <path d="M112 56 L104 70 L120 70Z" fill="white" opacity="0.9"  />
+        <path d="M138 48 L129 63 L147 63Z" fill="white" opacity="0.88" />
+        <path d="M60 72  L53 84  L67 84Z"  fill="white" opacity="0.6"  />
+
+        {/* ── NEAR MOUNTAINS (darker, front) ── */}
+        <path
+          d="M24 138
+             L34 116 L44 124 L56 104 L68 116
+             L80 94  L92 108
+             L104 88 L116 102
+             L128 84 L140 96
+             L152 78 L164 94
+             L176 86 L176 148 L24 148Z"
+          fill="url(#km-mnear)"
+          opacity="0.7"
+        />
+        {/* Snow caps near */}
+        <path d="M80  94 L72 108 L88 108Z"  fill="white" opacity="0.95" />
+        <path d="M104 88 L96 102 L112 102Z" fill="white" opacity="0.9"  />
+        <path d="M128 84 L120 97 L136 97Z"  fill="white" opacity="0.88" />
+        <path d="M152 78 L144 91 L160 91Z"  fill="white" opacity="0.85" />
+        <path d="M56 104 L49 115 L63 115Z"  fill="white" opacity="0.7"  />
+
+        {/* ── VALLEY / MEADOW ── */}
+        <path
+          d="M24 140 Q52 132, 80 136 Q108 140, 136 134 Q156 130, 176 136 L176 176 L24 176Z"
+          fill="url(#km-meadow)"
+        />
+
+        {/* ── WINDING RIVER (Naryn style) ── */}
+        <path
+          d="M100 90 C 86 100, 114 112, 100 126 C 86 140, 108 152, 96 170"
+          stroke="url(#km-river)"
+          strokeWidth="9"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* River highlight / shimmer */}
+        <path
+          d="M102 92 C 88 102, 116 113, 102 127 C 88 141, 110 152, 98 168"
+          stroke="white"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.35"
+        />
+        {/* Shimmer dots */}
+        <circle cx="100" cy="98"  r="1.5" fill="white" opacity="0.6" />
+        <circle cx="107" cy="118" r="1.8" fill="white" opacity="0.5" />
+        <circle cx="99"  cy="140" r="1.4" fill="white" opacity="0.45"/>
+        <circle cx="105" cy="158" r="1.2" fill="white" opacity="0.4" />
+
+        {/* ── BIRDS (eagles) ── */}
+        <path d="M46 52 Q50 46, 54 52 Q58 46, 62 52" stroke="#1E3A5F" strokeWidth="1.4" fill="none" opacity="0.4" />
+        <path d="M60 40 Q63 35, 66 40 Q69 35, 72 40" stroke="#1E3A5F" strokeWidth="1.1" fill="none" opacity="0.3" />
+        <path d="M36 65 Q38 61, 40 65 Q42 61, 44 65" stroke="#1E3A5F" strokeWidth="0.9" fill="none" opacity="0.25"/>
+
+        {/* ── SMALL YURT in valley ── */}
+        <g transform="translate(52, 140)">
+          <ellipse cx="10" cy="10" rx="11" ry="6" fill="#F5F5F4" opacity="0.8" />
+          <path d="M0 10 Q10 2, 20 10Z" fill="#FAFAF9" opacity="0.9" />
+          <rect x="8" y="7" width="4" height="5" fill="#78716C" opacity="0.5" />
+          {/* door */}
+          <ellipse cx="10" cy="4" rx="3" ry="1.5" fill="#DAA520" opacity="0.6" />
+          {/* tunduk hole */}
+        </g>
+
       </g>
+
+      {/* ── INNER CIRCLE BORDER ── */}
+      <circle cx="100" cy="100" r="76" fill="none" stroke="#1E293B" strokeWidth="1" opacity="0.08" />
+
+      {/* ── TUNDUK BROOCH (top center) ── */}
+      <g transform="translate(100, 17)">
+        {/* Outer gold ring */}
+        <circle r="13" fill="url(#km-tunduk-gold)" />
+        <circle r="13" fill="none" stroke="#92400E" strokeWidth="1" />
+        {/* White inner ring */}
+        <circle r="9" fill="none" stroke="white" strokeWidth="1.8" opacity="0.9" />
+        {/* Red centre */}
+        <circle r="4.5" fill="#DC2626" />
+        <circle r="4.5" fill="none" stroke="#B91C1C" strokeWidth="0.5" />
+        {/* Tunduk spokes (8 main + 8 half) */}
+        {Array.from({ length: 8 }).map((_, i) => {
+          const a = (i * 45 * Math.PI) / 180;
+          return (
+            <line
+              key={`sp-${i}`}
+              x1={4.5 * Math.cos(a)} y1={4.5 * Math.sin(a)}
+              x2={9   * Math.cos(a)} y2={9   * Math.sin(a)}
+              stroke="white" strokeWidth="1.5" strokeLinecap="round"
+            />
+          );
+        })}
+        {Array.from({ length: 8 }).map((_, i) => {
+          const a = ((i * 45 + 22.5) * Math.PI) / 180;
+          return (
+            <line
+              key={`sh-${i}`}
+              x1={4.5 * Math.cos(a)} y1={4.5 * Math.sin(a)}
+              x2={7.5 * Math.cos(a)} y2={7.5 * Math.sin(a)}
+              stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.75"
+            />
+          );
+        })}
+        {/* Gold highlight dot */}
+        <circle r="1.5" fill="#FDE68A" opacity="0.9" />
+      </g>
+
     </svg>
   );
 }
 
 /**
- * TundukIcon -- Small icon used on card backs and UI details.
+ * TundukIcon -- маленькая иконка для обратной стороны карточек.
  */
 export function TundukIcon({
   className = "",
@@ -285,20 +310,17 @@ export function TundukIcon({
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="3" fill="none" />
-      <circle cx="50" cy="50" r="35" stroke="currentColor" strokeWidth="2" fill="none" />
-      <circle cx="50" cy="50" r="15" fill="currentColor" />
+      <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
+      <circle cx="50" cy="50" r="32" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" />
+      <circle cx="50" cy="50" r="14" fill="currentColor" />
       {Array.from({ length: 8 }).map((_, i) => {
         const a = (i * 45 * Math.PI) / 180;
         return (
           <line
             key={i}
-            x1={50 + 15 * Math.cos(a)}
-            y1={50 + 15 * Math.sin(a)}
-            x2={50 + 35 * Math.cos(a)}
-            y2={50 + 35 * Math.sin(a)}
-            stroke="currentColor"
-            strokeWidth="3"
+            x1={50 + 14 * Math.cos(a)} y1={50 + 14 * Math.sin(a)}
+            x2={50 + 32 * Math.cos(a)} y2={50 + 32 * Math.sin(a)}
+            stroke="currentColor" strokeWidth="3"
           />
         );
       })}
@@ -307,13 +329,9 @@ export function TundukIcon({
         return (
           <line
             key={`s-${i}`}
-            x1={50 + 15 * Math.cos(a)}
-            y1={50 + 15 * Math.sin(a)}
-            x2={50 + 30 * Math.cos(a)}
-            y2={50 + 30 * Math.sin(a)}
-            stroke="currentColor"
-            strokeWidth="2"
-            opacity="0.7"
+            x1={50 + 14 * Math.cos(a)} y1={50 + 14 * Math.sin(a)}
+            x2={50 + 26 * Math.cos(a)} y2={50 + 26 * Math.sin(a)}
+            stroke="currentColor" strokeWidth="2" opacity="0.6"
           />
         );
       })}
@@ -322,7 +340,7 @@ export function TundukIcon({
 }
 
 /**
- * DecorativeBorder - Kyrgyz ornamental wave border.
+ * DecorativeBorder — волнистый кыргызский орнамент-бордюр.
  */
 export function DecorativeBorder({ className = "" }: { className?: string }) {
   return (
@@ -337,17 +355,11 @@ export function DecorativeBorder({ className = "" }: { className?: string }) {
       >
         <path
           d="M0 10 Q 25 0, 50 10 T 100 10 T 150 10 T 200 10 T 250 10 T 300 10 T 350 10 T 400 10"
-          stroke="currentColor"
-          strokeWidth="2"
-          fill="none"
-          opacity="0.3"
+          stroke="currentColor" strokeWidth="2" fill="none" opacity="0.3"
         />
         <path
           d="M0 10 Q 25 20, 50 10 T 100 10 T 150 10 T 200 10 T 250 10 T 300 10 T 350 10 T 400 10"
-          stroke="currentColor"
-          strokeWidth="2"
-          fill="none"
-          opacity="0.3"
+          stroke="currentColor" strokeWidth="2" fill="none" opacity="0.3"
         />
       </svg>
     </div>

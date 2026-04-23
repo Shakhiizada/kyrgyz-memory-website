@@ -143,9 +143,9 @@
   }
 }
 
-/* 3D Card Flip Animations */
+/* 3D Card Flip — fast & smooth */
 .perspective-1000 {
-  perspective: 1000px;
+  perspective: 900px;
 }
 
 .transform-style-preserve-3d {
@@ -153,11 +153,18 @@
 }
 
 .backface-hidden {
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
 .rotate-y-180 {
   transform: rotateY(180deg);
+}
+
+/* Remove heavy hover animations that cause lag */
+.card-hover-glow:hover {
+  animation: none;
+  box-shadow: 0 6px 20px rgba(197, 75, 60, 0.2);
 }
 
 /* Smooth card flip transition */

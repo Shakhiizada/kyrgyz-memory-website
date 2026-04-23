@@ -37,12 +37,12 @@ export function MemoryCard({
       )}
       aria-label={showFront ? `${item.name} card` : "Hidden card"}
     >
-      <div
-        className={cn(
-          "relative w-full h-full transition-transform duration-500 transform-style-preserve-3d",
-          showFront && "rotate-y-180",
-        )}
-      >
+        <div
+          className={cn(
+            "relative w-full h-full transition-transform duration-300 transform-style-preserve-3d",
+            showFront && "rotate-y-180",
+          )}
+        >
         {/* ---- CARD BACK (Tunduk pattern on red felt) ---- */}
         <div
           className={cn(
@@ -68,13 +68,11 @@ export function MemoryCard({
               : "border-border bg-gradient-to-br from-card to-card/90",
           )}
         >
-          {/* Large Image Container with zoom effect */}
+          {/* Image */}
           <div
             className={cn(
-              "w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl flex items-center justify-center overflow-hidden shrink-0",
-              "shadow-inner border-2 border-border/50",
-              "transition-transform duration-300",
-              showFront && "animate-in zoom-in-95 duration-500",
+              "w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center overflow-hidden shrink-0",
+              "shadow-inner border-2 border-border/40",
             )}
             style={{ backgroundColor: `${item.color}30` }}
           >
@@ -86,15 +84,25 @@ export function MemoryCard({
                 draggable={false}
               />
             ) : (
-              <span className="text-4xl sm:text-5xl md:text-6xl" role="img" aria-label={item.name}>
+              <span className="text-3xl sm:text-4xl md:text-5xl" role="img" aria-label={item.name}>
                 {item.emoji}
               </span>
             )}
           </div>
 
-          {/* Item name */}
-          <span className="text-xs sm:text-sm md:text-base font-bold text-card-foreground text-center leading-tight line-clamp-2">
+          {/* Item name -- large, bold, always readable */}
+          <span
+            className="text-[11px] sm:text-sm md:text-base font-extrabold text-center leading-tight w-full px-0.5"
+            style={{ color: "#1a1a1a" }}
+          >
             {item.name}
+          </span>
+          {/* Kyrgyz name */}
+          <span
+            className="text-[9px] sm:text-[11px] font-semibold text-center leading-none w-full px-0.5 opacity-70"
+            style={{ color: "#1a1a1a" }}
+          >
+            {item.nameKyrgyz}
           </span>
 
           {/* Match checkmark */}

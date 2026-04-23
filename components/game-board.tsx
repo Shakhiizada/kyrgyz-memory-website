@@ -280,14 +280,14 @@ export function GameBoard() {
           setFactItem(cardA);
           setFactOpen(true);
           audio.playMatch();
-          
+
           // Update current player's score
-          setPlayers(prev => prev.map((p, i) => 
+          setPlayers(prev => prev.map((p, i) =>
             i === currentPlayerIndex ? { ...p, score: p.score + 1 } : p
           ));
-          
+
           // Player gets another turn on match (don't switch)
-        }, 450);
+        }, 250);
       } else {
         // mismatch -- show hint, flip back, switch player
         setHint(`Remember: ${cardA.name} and ${cardB.name} are in different positions!`);
@@ -296,7 +296,7 @@ export function GameBoard() {
           setHint(null);
           setChecking(false);
           switchToNextPlayer();
-        }, 1500);
+        }, 800);
       }
     }
   }, [cards, flipped, matched, checking, currentPlayerIndex, switchToNextPlayer]);
